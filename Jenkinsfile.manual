@@ -1,0 +1,43 @@
+pipeline {
+    agent any
+
+    parameters {
+        choice(
+            name: 'ENV',
+            choices: ['main', 'dev'],
+            description: 'Select environment to deploy'
+        )
+    }
+
+    environment {
+        IMAGE_VERSION = "v1.0"
+    }
+
+    stages {
+
+        stage('Deploy') {
+            steps {
+                script {
+
+                    if (params.ENV == 'main') {
+                        PORT = '3000'
+                        IMAGE = "nodemain:${IMAGE_VERSION}"
+                    } else {
+                        PORT = '3001'
+                        IMAGE = "nodedev:${IMAGE_VERSION}"
+                    }
+
+                    echo "Deploying ${IMAGE} on port ${PORT}"
+
+                    sh """
+                    docker rm -f app_${params.ENV} || true
+                    docker run -d \
+                      --name app_${params.ENV} \
+                      -p ${PORT}:3000 \
+                      ${IMAGE}
+                    """
+                }
+            }
+        }
+    }
+}
