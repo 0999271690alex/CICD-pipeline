@@ -2,12 +2,11 @@ pipeline {
     agent any
 
     tools {
-        nodejs 'node'
+        nodejs 'node'   // має збігатися з назвою в Jenkins → Global Tool Configuration
     }
 
     environment {
-        IMAGE_NAME = "node${env.BRANCH_NAME}:v1.0"
-        PORT = ""
+        IMAGE_VERSION = "v1.0"
     }
 
     stages {
@@ -22,45 +21,48 @@ pipeline {
             steps {
                 script {
                     if (env.BRANCH_NAME == 'main') {
-                        env.PORT = "3000"
+                        env.PORT = '3000'
+                        env.IMAGE_NAME = "nodemain:${IMAGE_VERSION}"
                     } else {
-                        env.PORT = "3001"
+                        env.PORT = '3001'
+                        env.IMAGE_NAME = "nodedev:${IMAGE_VERSION}"
                     }
+
+                    echo "Branch: ${env.BRANCH_NAME}"
+                    echo "Port: ${env.PORT}"
+                    echo "Image: ${env.IMAGE_NAME}"
                 }
             }
         }
 
         stage('Build') {
             steps {
-                sh '''
-                  node -v
-                  npm -v
-                  npm install
-                  npm run build
-                '''
+                sh 'npm install'
             }
         }
 
         stage('Test') {
             steps {
-                sh 'CI=true npm test'
+                sh 'npm test -- --watch=false'
             }
         }
 
         stage('Build Docker Image') {
             steps {
-                sh "docker build -t ${IMAGE_NAME} ."
+                sh """
+                docker build -t ${env.IMAGE_NAME} .
+                """
             }
         }
 
         stage('Deploy') {
             steps {
                 sh """
-                docker rm -f ${env.BRANCH_NAME} || true
+                docker rm -f app_${env.BRANCH_NAME} || true
                 docker run -d \
-                  --name ${env.BRANCH_NAME} \
-                  -p ${PORT}:3000 \
-                  ${IMAGE_NAME}
+                  --name app_${env.BRANCH_NAME} \
+                  -p ${env.PORT}:3000 \
+                  ${env.IMAGE_NAME}
                 """
             }
         }
