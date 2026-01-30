@@ -2,7 +2,7 @@ pipeline {
     agent any
 
     tools {
-        nodejs 'node'   // має збігатися з назвою в Jenkins → Global Tool Configuration
+        nodejs 'node'   
     }
 
     environment {
